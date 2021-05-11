@@ -13,5 +13,5 @@ homeassistant:
     waterway: !include waterway/waterway.yaml
 ```
 
-Then throw the waterway folder into your config/.
+Then throw the waterway folder into your config/. 
 Change all instances of my ip (192.168.22.5) to your pool controller's ip.
