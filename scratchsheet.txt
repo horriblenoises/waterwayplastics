@@ -1,7 +1,3 @@
-
-
-### Scratch Sheet:
-```
 Pool Decode
 
 Statuses:
@@ -151,4 +147,4 @@ $A0,6,02,!,AA,55
 Pool/Spa Mode Cycle [Pool,Spill,Spa,Off]
 http://192.168.22.5/index.htm?txtValue=%24A0%2C6%2C17%2C%21%2CAA%2C55
 $A0,6,17,!,AA,55
-```
+
