@@ -15,6 +15,7 @@ case $1 in
     # Agument 2 is desired set temp.
     /usr/bin/curl http://192.168.22.5/index.htm?txtValue=%24O8%2C6%2C2C%2C$(echo "obase=16; $2"|bc)%2C%21%2CAA%2C55
     ;;
+## I don't use the rest of these but leaving them just incase / quick reference for urls.
   heat)
     /usr/bin/curl http://192.168.22.5/index.htm?txtValue=%24A0%2C6%2C15%2C%21%2CAA%2C55 -s -o /dev/null
     ;;
