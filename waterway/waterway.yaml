@@ -4,9 +4,9 @@ sensor:
   - platform: command_line
     name: pool
     json_attributes:
-      - Pump
-      - PumpSpeed
       - Mode
+      - ModeNumber
+      - PumpSpeed
       - PoolTemp
       - AirTemp
       - SolarTemp
@@ -26,25 +26,29 @@ sensor:
       - j3
       - j4
     command: "/config/waterway/json.sh"
-    value_template: "{{ value_json.Pool }}"
+    value_template: "{{ value_json.Status }}"
     scan_interval: "6"
   - platform: template
     sensors:
+      pool_mode:
+        value_template: "{{ state_attr('sensor.pool', 'Mode') }}"
+        friendly_name: "Pool Mode"
+        icon_template: "mdi:air-filter"
       pool_temp:
-        value_template: "{{ state_attr('sensor.pool', 'PoolTemp')|float }}"
+        value_template: "{{ state_attr('sensor.pool', 'PoolTemp')|int }}"
         friendly_name: "Pool Temp"
         device_class: "temperature"
-        unit_of_measurement: "°"
+        unit_of_measurement: "°F"
       air_temp:
-        value_template: "{{ state_attr('sensor.pool', 'AirTemp')|float }}"
+        value_template: "{{ state_attr('sensor.pool', 'AirTemp')|int }}"
         friendly_name: "Air Temp"
         device_class: "temperature"
-        unit_of_measurement: "°"
+        unit_of_measurement: "°F"
       solar_temp:
-        value_template: "{{ state_attr('sensor.pool', 'SolarTemp')|float }}"
+        value_template: "{{ state_attr('sensor.pool', 'SolarTemp')|int }}"
         friendly_name: "Solar Temp"
         device_class: "temperature"
-        unit_of_measurement: "°"
+        unit_of_measurement: "°F"
       pump_speed:
         value_template: "{{ state_attr('sensor.pool', 'PumpSpeed')|int  }}"
         friendly_name: "Pump Speed"
@@ -69,17 +73,20 @@ input_number:
     min: 74
     max: 99
     step: 1
-    unit_of_measurement: "°"
+    unit_of_measurement: "°F"
     mode: slider
     icon: "mdi:thermometer"
 
 shell_command:
   set_pool_temp: "/config/waterway/setpool.sh settemp {{ states('input_number.pool_settemp') }}"
-  off_mode: "/config/waterway/setpool.sh poolmode {{ ((state_attr('sensor.pool','Mode')|int*-1)+0)%4 }}"
-  pool_mode: "/config/waterway/setpool.sh poolmode {{ ((state_attr('sensor.pool','Mode')|int*-1)+1)%4 }}"
-  spillover_mode: "/config/waterway/setpool.sh poolmode {{ ((state_attr('sensor.pool','Mode')|int*-1)+2)%4 }}"
-  spa_mode: "/config/waterway/setpool.sh poolmode {{ ((state_attr('sensor.pool','Mode')|int*-1)+3)%4 }}"
-
+# Uncomment for lone pool system (and the applicable switch below)
+#  pool_toggle: "/config/waterway/setpool.sh poolmode 1"
+# Comment out these four for lone pool system (and the applicable switches below)
+  off_mode: "/config/waterway/setpool.sh poolmode {{ ((state_attr('sensor.pool','ModeNumber')|int*-1)+0)%4 }}"
+  pool_mode: "/config/waterway/setpool.sh poolmode {{ ((state_attr('sensor.pool','ModeNumber')|int*-1)+1)%4 }}"
+  spillover_mode: "/config/waterway/setpool.sh poolmode {{ ((state_attr('sensor.pool','ModeNumber')|int*-1)+2)%4 }}"
+  spa_mode: "/config/waterway/setpool.sh poolmode {{ ((state_attr('sensor.pool','ModeNumber')|int*-1)+3)%4 }}"
+  
 rest_command:
   spa_light:
     url: "http://192.168.22.5/index.htm?txtValue=%24A0%2C6%2C02%2C%21%2CAA%2C55"
@@ -88,21 +95,22 @@ rest_command:
   pool_solar:
     url: "http://192.168.22.5/index.htm?txtValue=%24A0%2C6%2C0D%2C%21%2CAA%2C55"
 
-
 switch:
   - platform: template
     switches:
-      spa_light:
-        friendly_name: "Spa Light"
-        value_template: "{{ is_state_attr('sensor.pool', 'aux1', '1') }}"
-        turn_on:
-          - service: rest_command.spa_light
-        turn_off:
-          - service: rest_command.spa_light
-        icon_template: mdi:lightbulb
+## Uncomment for lone pool system
+#      pool:
+#        friendly_name: "Pool"
+#        value_template: "{{ is_state('sensor.pool', 'on') }}"
+#        turn_on:
+#          - service: shell_command.pool_toggle
+#        turn_off:
+#          - service: shell_command.pool_toggle
+#        icon_template: "mdi:waves"
+## Comment out next three (pool_mode,spillover_mode,spa_mode) for lone pool system
       pool_mode:
         friendly_name: "Pool"
-        value_template: "{{ is_state('sensor.pool', 'Pool') }}"
+        value_template: "{{ is_state_attr('sensor.pool', 'Mode', 'Pool') }}"
         turn_on:
           - service: shell_command.pool_mode
         turn_off:
@@ -110,7 +118,7 @@ switch:
         icon_template: "mdi:waves"
       spillover_mode:
         friendly_name: "Spillover"
-        value_template: "{{ is_state('sensor.pool', 'Spillover') }}"
+        value_template: "{{ is_state_attr('sensor.pool', 'Mode', 'Spillover') }}"
         turn_on:
           - service: shell_command.spillover_mode
         turn_off:
@@ -118,7 +126,7 @@ switch:
         icon_template: "mdi:archive-arrow-down-outline"
       spa_mode:
         friendly_name: "Spa"
-        value_template: "{{ is_state('sensor.pool', 'Spa') }}"
+        value_template: "{{ is_state_attr('sensor.pool', 'Mode', 'Spa') }}"
         turn_on:
           - service: shell_command.spa_mode
         turn_off:
@@ -132,6 +140,14 @@ switch:
         turn_off:
           - service: rest_command.pool_heat
         icon_template: "mdi:hot-tub"
+      spa_light:
+        friendly_name: "Spa Light"
+        value_template: "{{ is_state_attr('sensor.pool', 'aux1', '1') }}"
+        turn_on:
+          - service: rest_command.spa_light
+        turn_off:
+          - service: rest_command.spa_light
+        icon_template: mdi:lightbulb
       pool_solar:
         friendly_name: "Pool Solar"
         value_template: "{{ is_state_attr('sensor.pool', 'j3', '1') }}"
