@@ -55,6 +55,7 @@ sensor:
         unit_of_measurement: "%"
         icon_template: "mdi:pump"
 
+# Comment out this section for lone pool system.
 binary_sensor:
   - platform: template
     sensors:
