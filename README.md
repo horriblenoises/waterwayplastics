@@ -17,7 +17,17 @@ Throw the waterway folder into your config/.
 
 Change all instances of my ip (192.168.22.5) to your pool controller's ip.
 
-Edit waterway.yaml to comment out the things you don't need and uncomment out the things you do (lone pool vs spillover system). Edit the other switches to customize for your pool's relays.
+Edit waterway.yaml to comment out the things you don't need and uncomment out the things you do (lone pool vs spillover system). Edit the other switches to customize for your pool's relays/valves. For example, if you have a valve connected to j1, you would add a switch like this:
+```
+      pool_waterfeature:
+        friendly_name: "Pool Waterfeature"
+        value_template: "{{ is_state_attr('sensor.pool', 'j1', '1') }}"
+        turn_on:
+          - service: rest_command.pool_j1
+        turn_off:
+          - service: rest_command.pool_j1
+        icon_template: "mdi:fountain"
+```
 
 Add waterwayautomations.yaml contents to your automations.yaml file. 
 
