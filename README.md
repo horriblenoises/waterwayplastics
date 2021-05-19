@@ -1,5 +1,5 @@
 # waterway
-An iffy implementation of Home Assistant integration
+An iffy implementation of Home Assistant integration for a Waterway Plastics Oasis pool controller.
 
 Thank you to S10XtremeNLow's for sharing your NodeRed solution.
 
