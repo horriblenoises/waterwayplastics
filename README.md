@@ -22,7 +22,7 @@ homeassistant:
 For example, if you have a valve connected to j2, you would add a switch like this:
 ```
       pool_waterfeature:
-        friendly_name: "Pool Waterfeature"
+        friendly_name: "Pool Water Feature"
         value_template: "{{ is_state_attr('sensor.pool', 'j2', '1') }}"
         turn_on:
           - service: rest_command.pool_j2
