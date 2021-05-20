@@ -179,3 +179,39 @@ switch:
         turn_off:
           - service: rest_command.pool_j3
         icon_template: "mdi:weather-sunny"
+
+
+automation waterway:
+  - alias: "\U0001F39BPool Set Temp - Current"
+    description: Keep input_number in sync with pool controller's set temp
+    trigger:
+      - platform: time_pattern
+        hours: '*'
+        minutes: /30
+        seconds: '0'
+      - platform: state
+        entity_id: sensor.pool
+        attribute: SetTemp
+    condition:
+      - condition: template
+        value_template: >-
+          {{ state_attr('sensor.pool', 'SetTemp')|int !=
+          states('input_number.pool_settemp')|int }}
+      - condition: template
+        value_template: '{{ state_attr(''sensor.pool'', ''SetTemp'')|int != 0 }}'
+    action:
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.pool_settemp
+        data:
+          value: '{{ state_attr(''sensor.pool'', ''SetTemp'')|float }}'
+    mode: single
+  - alias: "\U0001F39BPool Set Temp - Change"
+    description: ''
+    trigger:
+      - platform: state
+        entity_id: input_number.pool_settemp
+    condition: []
+    action:
+      - service: shell_command.set_pool_temp
+    mode: single
