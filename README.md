@@ -42,6 +42,8 @@ Or if you have other lights, heaters, or accessories on a the 3rd aux relay:
         icon_template: mdi:lightbulb
 
 ```
-* Add waterwayautomations.yaml contents to your automations.yaml file. 
+
+--------
+
 
 __This code will need to be modified and addapted to your pool's setup__. For the most part, you can't break anything but I take no responsibility for your pool equipment. For example, my pool is a solar panel heated Spa/Pool overflow configuration. This changes the way j1, j2, & j3 valve controls work.
