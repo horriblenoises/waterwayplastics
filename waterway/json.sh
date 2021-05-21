@@ -150,8 +150,8 @@ echo -n "{\
 \"j2\":\"${POOLB[5]}\", \
 \"j3\":\"${POOLB[4]}\", \
 \"j4\":\"${POOLB[3]}\"\
-}" | tee ./.cache
+}" | tee /config/waterway/.cache
 
 else
-  cat ./.cache
+  cat /config/waterway/.cache
 fi
