@@ -157,14 +157,15 @@ switch:
         turn_off:
           - service: rest_command.pool_aux1
         icon_template: mdi:lightbulb
-      pool_solar:
-        friendly_name: "Pool Solar"
-        value_template: "{{ is_state_attr('sensor.pool', 'j3', '1') }}"
-        turn_on:
-          - service: rest_command.pool_j3
-        turn_off:
-          - service: rest_command.pool_j3
-        icon_template: "mdi:weather-sunny"
+## I have a solar valve connected to j3. Change to fit your needs.
+#      pool_solar:
+#        friendly_name: "Pool Solar"
+#        value_template: "{{ is_state_attr('sensor.pool', 'j3', '1') }}"
+#        turn_on:
+#          - service: rest_command.pool_j3
+#        turn_off:
+#          - service: rest_command.pool_j3
+#        icon_template: "mdi:weather-sunny"
 
 shell_command:
 # Uncomment for lone pool system (and the applicable switch below)
