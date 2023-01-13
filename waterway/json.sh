@@ -109,7 +109,7 @@ POOLA=($( echo $XML | sed -e 's/!,AA,55.*O2,6,....\(..\),............/\1/' -e 's
   MODENUMBER=$(b2d ${POOLC[13]}${POOLC[14]})
   POOLMODE=$(findpoolmode $MODENUMBER)
 ## Invert j3 (!! Other users will not want this)
-  POOLB[4]=$(tr 01 10 <<< ${POOLB[4]})
+#  POOLB[4]=$(tr 01 10 <<< ${POOLB[4]})
 
 ## Service Mode:
   SERVICE=$([ ${POOLA[4]} != "00" ] && echo -n "1" || echo -n "0" )
