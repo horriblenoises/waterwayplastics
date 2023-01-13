@@ -1,11 +1,30 @@
 ## Waterways Oasis
 
+##changes:
+# moved template entities from legacy format to new.
+# changed set_heat_temp to number entity for cleaner interface and removed old automations.
+#  replace input_number.pool_settemp with number.pool_heat_temp
+# added service mode
+# added rest call to set current time to sync with home assistant
+# input_text.poolctrlip as hacky variable for the pool controller IP.
+
+
+
+## ENTER YOUR POOL CONTROLLER'S IP ADDRESS
+input_text:
+  poolctrlip:
+    initial: "192.168.22.5"
+
+
 sensor:
   - platform: command_line
     name: pool
     json_attributes:
       - Mode
       - ModeNumber
+      - ServiceMode
+      - InTransition
+      - SchedOverride
       - PumpSpeed
       - PoolTemp
       - AirTemp
@@ -27,96 +46,63 @@ sensor:
       - j4
     command: "/config/waterway/json.sh"
     value_template: "{{ value_json.Status }}"
-    scan_interval: "6"
-  - platform: template
-    sensors:
-      pool_mode:
-        value_template: "{{ state_attr('sensor.pool', 'Mode') }}"
-        friendly_name: "Pool Mode"
-        icon_template: "mdi:air-filter"
-      pool_temp:
-        value_template: "{{ state_attr('sensor.pool', 'PoolTemp')|int }}"
-        friendly_name: "Pool Temp"
-        device_class: "temperature"
-        unit_of_measurement: "°F"
-      air_temp:
-        value_template: "{{ state_attr('sensor.pool', 'AirTemp')|int }}"
-        friendly_name: "Air Temp"
-        device_class: "temperature"
-        unit_of_measurement: "°F"
-      solar_temp:
-        value_template: "{{ state_attr('sensor.pool', 'SolarTemp')|int }}"
-        friendly_name: "Solar Temp"
-        device_class: "temperature"
-        unit_of_measurement: "°F"
-      pump_speed:
-        value_template: "{{ state_attr('sensor.pool', 'PumpSpeed')|int  }}"
-        friendly_name: "Pump Speed"
-        unit_of_measurement: "%"
-        icon_template: "mdi:pump"
+    scan_interval: "2"
 
-# Comment out this section for lone pool system.
-binary_sensor:
-  - platform: template
-    sensors:
-      pool_intake_valve:
-        friendly_name: "Intake Valve"
-        value_template: "{{ is_state_attr('sensor.pool', 'j1', '1') }}"
-        icon_template: mdi:relation-many-to-zero-or-one
-      pool_return_valve:
-        friendly_name: "Return Valve"
-        value_template: "{{ is_state_attr('sensor.pool', 'j2', '1') }}"
-        icon_template: mdi:relation-one-to-zero-or-many
+template:
+  sensor:
+    - name: "Pool Mode"
+      state: "{{ state_attr('sensor.pool', 'Mode') }}"
+      icon: "mdi:air-filter"
+    - name: "Pool Temp"
+      state: "{{ state_attr('sensor.pool', 'PoolTemp')|int if (state_attr('sensor.pool', 'PoolTemp')|int > 0) }}"
+      icon: mdi:pool-thermometer
+      device_class: "temperature"
+      unit_of_measurement: "°F"
+    - name: "Air Temp"
+      state: "{{ state_attr('sensor.pool', 'AirTemp')|int if (state_attr('sensor.pool', 'AirTemp')|int > 0) }}"
+      device_class: "temperature"
+      unit_of_measurement: "°F"
+    - name: "Solar Temp"
+      state: "{{ state_attr('sensor.pool', 'SolarTemp')|int if (state_attr('sensor.pool', 'SolarTemp')|int > 0) }}"
+      device_class: "temperature"
+      icon: mdi:sun-thermometer
+      unit_of_measurement: "°F"
+    - name: "Pump Speed"
+      state: "{{ state_attr('sensor.pool', 'PumpSpeed')|int }}"
+      unit_of_measurement: "%"
+      icon: "mdi:pump"
+  number:
+    - name: "Pool Heat Temp"
+      state: "{{ state_attr('sensor.pool', 'SetTemp')|int }}"
+      min: 74
+      max: 99
+      step: 1
+      optimistic: true
+      set_value:
+        service: rest_command.set_pool_heat_temp
+  binary_sensor:
+    - name: "Pool Service Mode"
+      state: "{{ is_state_attr('sensor.pool', 'ServiceMode', '1') }}"
+      icon: mdi:progress-wrench
+# Transitioning is the timeout period of ~30sec the controller waits for valves to rotate before it turns the pump on.
+# May not be a thing for pools without spillover/spa modes.
+    - name: "Pool Transitioning"
+      state: "{{ is_state_attr('sensor.pool', 'InTransition', '1') }}"
+      icon: mdi:progress-clock
+# Schedule Override is 'on' whenever the mode is changed manually.
+# If you change the mode back to what was scheduled, the controller may turn this off and resume scheduled behavior. .. maybe?
+    - name: "Pool Schedule Override"
+      state: "{{ is_state_attr('sensor.pool', 'SchedOverride', '1') }}"
+      icon: mdi:clock-remove-outline
 
-input_number:
-  pool_settemp:
-    name: Pool Set Temp
-    min: 74
-    max: 99
-    step: 1
-    unit_of_measurement: "°F"
-    mode: slider
-    icon: "mdi:thermometer"
+# Comment out these last two for lone pool system.
+    - name: "Pool Intake Valve"
+      state: "{{ is_state_attr('sensor.pool', 'j2', '1') }}"
+      icon: mdi:relation-many-to-zero-or-one
+    - name: "Pool Return Valve"
+      state: "{{ is_state_attr('sensor.pool', 'j1', '1') }}"
+      icon: mdi:relation-one-to-zero-or-many
 
-shell_command:
-  set_pool_temp: "/config/waterway/setpool.sh settemp {{ states('input_number.pool_settemp') }}"
-# Uncomment for lone pool system (and the applicable switch below)
-#  pool_toggle: "/config/waterway/setpool.sh poolmode 1"
-# Comment out these four for lone pool system (and the applicable switches below)
-  off_mode: "/config/waterway/setpool.sh poolmode {{ ((state_attr('sensor.pool','ModeNumber')|int*-1)+0)%4 }}"
-  pool_mode: "/config/waterway/setpool.sh poolmode {{ ((state_attr('sensor.pool','ModeNumber')|int*-1)+1)%4 }}"
-  spillover_mode: "/config/waterway/setpool.sh poolmode {{ ((state_attr('sensor.pool','ModeNumber')|int*-1)+2)%4 }}"
-  spa_mode: "/config/waterway/setpool.sh poolmode {{ ((state_attr('sensor.pool','ModeNumber')|int*-1)+3)%4 }}"
-  
-rest_command:
-  pool_heat:
-    url: "http://192.168.22.5/index.htm?txtValue=%24A0%2C6%2C15%2C%21%2CAA%2C55"
-  pool_aux1:
-    url: "http://192.168.22.5/index.htm?txtValue=%24A0%2C6%2C02%2C%21%2CAA%2C55"
-  pool_aux2:
-    url: "http://192.168.22.5/index.htm?txtValue=%24A0%2C6%2C03%2C%21%2CAA%2C55"
-  pool_aux3:
-    url: "http://192.168.22.5/index.htm?txtValue=%24A0%2C6%2C04%2C%21%2CAA%2C55"
-  pool_aux4:
-    url: "http://192.168.22.5/index.htm?txtValue=%24A0%2C6%2C05%2C%21%2CAA%2C55"
-  pool_aux5:
-    url: "http://192.168.22.5/index.htm?txtValue=%24A0%2C6%2C06%2C%21%2CAA%2C55"
-  pool_aux6:
-    url: "http://192.168.22.5/index.htm?txtValue=%24A0%2C6%2C07%2C%21%2CAA%2C55"
-  pool_aux7:
-    url: "http://192.168.22.5/index.htm?txtValue=%24A0%2C6%2C08%2C%21%2CAA%2C55"
-  pool_aux8:
-    url: "http://192.168.22.5/index.htm?txtValue=%24A0%2C6%2C09%2C%21%2CAA%2C55"
-  pool_aux9:
-    url: "http://192.168.22.5/index.htm?txtValue=%24A0%2C6%2C0A%2C%21%2CAA%2C55"
-  pool_j1:
-    url: "http://192.168.22.5/index.htm?txtValue=%24A0%2C6%2C0B%2C%21%2CAA%2C55"
-  pool_j2:
-    url: "http://192.168.22.5/index.htm?txtValue=%24A0%2C6%2C0C%2C%21%2CAA%2C55"
-  pool_j3:
-    url: "http://192.168.22.5/index.htm?txtValue=%24A0%2C6%2C0D%2C%21%2CAA%2C55"
-  pool_j4:
-    url: "http://192.168.22.5/index.htm?txtValue=%24A0%2C6%2C0E%2C%21%2CAA%2C55"
 
 switch:
   - platform: template
@@ -146,7 +132,7 @@ switch:
           - service: shell_command.spillover_mode
         turn_off:
           - service: shell_command.off_mode
-        icon_template: "mdi:archive-arrow-down-outline"
+        icon_template: "mdi:waterfall"
       spa_mode:
         friendly_name: "Spa"
         value_template: "{{ is_state_attr('sensor.pool', 'Mode', 'Spa') }}"
@@ -180,38 +166,52 @@ switch:
           - service: rest_command.pool_j3
         icon_template: "mdi:weather-sunny"
 
-
-automation waterway:
-  - alias: "\U0001F39BPool Set Temp - Current"
-    description: Keep input_number in sync with pool controller's set temp
-    trigger:
-      - platform: time_pattern
-        hours: '*'
-        minutes: /30
-        seconds: '0'
-      - platform: state
-        entity_id: sensor.pool
-        attribute: SetTemp
-    condition:
-      - condition: template
-        value_template: >-
-          {{ state_attr('sensor.pool', 'SetTemp')|int !=
-          states('input_number.pool_settemp')|int }}
-      - condition: template
-        value_template: '{{ state_attr(''sensor.pool'', ''SetTemp'')|int != 0 }}'
-    action:
-      - service: input_number.set_value
-        target:
-          entity_id: input_number.pool_settemp
-        data:
-          value: '{{ state_attr(''sensor.pool'', ''SetTemp'')|float }}'
-    mode: single
-  - alias: "\U0001F39BPool Set Temp - Change"
-    description: ''
-    trigger:
-      - platform: state
-        entity_id: input_number.pool_settemp
-    condition: []
-    action:
-      - service: shell_command.set_pool_temp
-    mode: single
+shell_command:
+# Uncomment for lone pool system (and the applicable switch below)
+#  pool_toggle: "/config/waterway/setpool.sh poolmode 1"
+# Comment out these four for lone pool system (and the applicable switches below)
+##
+# ! These are bad names. Prepend with "pool_". Even if that makes "pool_pool_mode"
+##
+  off_mode: "/config/waterway/setpool.sh poolmode {{ ((state_attr('sensor.pool','ModeNumber')|int*-1)+0)%4 }}"
+  pool_mode: "/config/waterway/setpool.sh poolmode {{ ((state_attr('sensor.pool','ModeNumber')|int*-1)+1)%4 }}"
+  spillover_mode: "/config/waterway/setpool.sh poolmode {{ ((state_attr('sensor.pool','ModeNumber')|int*-1)+2)%4 }}"
+  spa_mode: "/config/waterway/setpool.sh poolmode {{ ((state_attr('sensor.pool','ModeNumber')|int*-1)+3)%4 }}"
+#  set_pool_heat_temp: "/config/waterway/setpool.sh settemp {{ value }}"
+  
+rest_command:
+  pool_mode:
+    url: "http://{{states('input_text.poolctrlip')}}/index.htm?txtValue=%24A0%2C6%2C17%2C%21%2CAA%2C55"
+  set_pool_heat_temp:
+    url: "http://{{states('input_text.poolctrlip')}}/index.htm?txtValue=%24O8%2C6%2C2C%2C{{ '%0X' | format(states('number.pool_heat_temp')|int) }}%2C%21%2CAA%2C55"
+  pool_heat:
+    url: "http://{{states('input_text.poolctrlip')}}/index.htm?txtValue=%24A0%2C6%2C15%2C%21%2CAA%2C55"
+  pool_aux1:
+    url: "http://{{states('input_text.poolctrlip')}}/index.htm?txtValue=%24A0%2C6%2C02%2C%21%2CAA%2C55"
+  pool_aux2:
+    url: "http://{{states('input_text.poolctrlip')}}/index.htm?txtValue=%24A0%2C6%2C03%2C%21%2CAA%2C55"
+  pool_aux3:
+    url: "http://{{states('input_text.poolctrlip')}}/index.htm?txtValue=%24A0%2C6%2C04%2C%21%2CAA%2C55"
+  pool_aux4:
+    url: "http://{{states('input_text.poolctrlip')}}/index.htm?txtValue=%24A0%2C6%2C05%2C%21%2CAA%2C55"
+  pool_aux5:
+    url: "http://{{states('input_text.poolctrlip')}}/index.htm?txtValue=%24A0%2C6%2C06%2C%21%2CAA%2C55"
+  pool_aux6:
+    url: "http://{{states('input_text.poolctrlip')}}/index.htm?txtValue=%24A0%2C6%2C07%2C%21%2CAA%2C55"
+  pool_aux7:
+    url: "http://{{states('input_text.poolctrlip')}}/index.htm?txtValue=%24A0%2C6%2C08%2C%21%2CAA%2C55"
+  pool_aux8:
+    url: "http://{{states('input_text.poolctrlip')}}/index.htm?txtValue=%24A0%2C6%2C09%2C%21%2CAA%2C55"
+  pool_aux9:
+    url: "http://{{states('input_text.poolctrlip')}}/index.htm?txtValue=%24A0%2C6%2C0A%2C%21%2CAA%2C55"
+  pool_j1:
+    url: "http://{{states('input_text.poolctrlip')}}/index.htm?txtValue=%24A0%2C6%2C0B%2C%21%2CAA%2C55"
+  pool_j2:
+    url: "http://{{states('input_text.poolctrlip')}}/index.htm?txtValue=%24A0%2C6%2C0C%2C%21%2CAA%2C55"
+  pool_j3:
+    url: "http://{{states('input_text.poolctrlip')}}/index.htm?txtValue=%24A0%2C6%2C0D%2C%21%2CAA%2C55"
+  pool_j4:
+    url: "http://{{states('input_text.poolctrlip')}}/index.htm?txtValue=%24A0%2C6%2C0E%2C%21%2CAA%2C55"
+# Changing the time causes the system to hang for a bit. I think something needs to reload on the board afterward.
+  pool_set_time:
+    url: "http://{{states('input_text.poolctrlip')}}/index.htm?txtValue={{now().strftime('%%24S6%%2C6%%2CD%%2C%y%%2C%m%%2C%d%%2CW%%2C%w%%2CT%%2C%H%%2C%M%%2C%S%%2C%%21%%2CAA%%2C55')}}"
