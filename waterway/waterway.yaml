@@ -16,37 +16,37 @@ input_text:
     initial: "192.168.22.5"
 
 
-sensor:
-  - platform: command_line
-    name: pool
-    json_attributes:
-      - Mode
-      - ModeNumber
-      - ServiceMode
-      - InTransition
-      - SchedOverride
-      - PumpSpeed
-      - PoolTemp
-      - AirTemp
-      - SolarTemp
-      - SetTemp
-      - Heat
-      - aux1
-      - aux2
-      - aux3
-      - aux4
-      - aux5
-      - aux6
-      - aux7
-      - aux8
-      - aux9
-      - j1
-      - j2
-      - j3
-      - j4
-    command: "/config/waterway/json.sh"
-    value_template: "{{ value_json.Status }}"
-    scan_interval: "2"
+command_line:
+  - sensor:
+      name: pool
+      json_attributes:
+        - Mode
+        - ModeNumber
+        - ServiceMode
+        - InTransition
+        - SchedOverride
+        - PumpSpeed
+        - PoolTemp
+        - AirTemp
+        - SolarTemp
+        - SetTemp
+        - Heat
+        - aux1
+        - aux2
+        - aux3
+        - aux4
+        - aux5
+        - aux6
+        - aux7
+        - aux8
+        - aux9
+        - j1
+        - j2
+        - j3
+        - j4
+      command: '/config/waterway/json.sh'
+      value_template: "{{ value_json.Status }}"
+      scan_interval: "2"
 
 template:
   sensor:
